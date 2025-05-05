@@ -43,13 +43,13 @@
       text-decoration: underline;
     }
     .markdown-body code {
-      background-color: #f1f5f9;
+      background-color: #19222a;
       padding: 0.1rem 0.3rem;
       border-radius: 0.25rem;
       font-family: monospace;
     }
     .markdown-body pre {
-      background-color: #f1f5f9;
+      background-color: #0e1318;
       padding: 1rem;
       border-radius: 0.5rem;
       overflow-x: auto;
@@ -59,62 +59,65 @@
       background-color: transparent;
       padding: 0;
     }
+    .markdown-body {
+      color: #ffffff;
+    }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen">
+<body class="bg-gray-800 text-gray-50 min-h-screen">
   <div class="container mx-auto px-4 py-8 max-w-6xl">
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-center mb-2">GitHub Release Notes Aggregator</h1>
-      <p class="text-center text-gray-600 mb-4">Aggregate release notes between versions or across multiple tags</p>
+      <p class="text-center text-gray-9000 mb-4">Aggregate release notes between versions or across multiple tags</p>
       <div class="border-b border-gray-200 mb-4"></div>
     </header>
 
     <main class="grid md:grid-cols-12 gap-8">
-      <div class="md:col-span-4 rounded-lg bg-white p-6 shadow">
+      <div class="md:col-span-4 rounded-lg bg-gray-900 p-6 shadow">
         <form id="releaseForm" class="space-y-4">
           <div>
-            <label for="owner" class="block text-sm font-medium text-gray-700 mb-1">Repository Owner</label>
+            <label for="owner" class="block text-sm font-medium text-gray-60 mb-1">Repository Owner</label>
             <input type="text" id="owner" name="owner" placeholder="e.g., microsoft" required
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
           
           <div>
-            <label for="repo" class="block text-sm font-medium text-gray-700 mb-1">Repository Name</label>
+            <label for="repo" class="block text-sm font-medium text-gray-60 mb-1">Repository Name</label>
             <input type="text" id="repo" name="repo" placeholder="e.g., vscode" required
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
           
           <div>
-            <label for="token" class="block text-sm font-medium text-gray-700 mb-1">GitHub Token (Optional)</label>
+            <label for="token" class="block text-sm font-medium text-gray-60 mb-1">GitHub Token (Optional)</label>
             <input type="password" id="token" name="token" placeholder="For higher API rate limits" 
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <p class="text-xs text-gray-500 mt-1">Your token is never stored or sent anywhere except GitHub API</p>
+            <p class="text-xs text-gray-8000 mt-1">Your token is never stored or sent anywhere except GitHub API</p>
           </div>
           
           <div class="border-t border-gray-200 pt-4">
-            <p class="block text-sm font-medium text-gray-700 mb-3">Select Releases</p>
+            <p class="block text-sm font-medium text-gray-60 mb-3">Select Releases</p>
             
             <div class="flex items-center mb-3">
               <input type="radio" id="allReleases" name="releaseType" value="all" checked
                 class="h-4 w-4 text-blue-600 focus:ring-blue-500">
-              <label for="allReleases" class="ml-2 block text-sm text-gray-700">All Releases</label>
+              <label for="allReleases" class="ml-2 block text-sm text-gray-60">All Releases</label>
             </div>
             
             <div class="flex items-center mb-3">
               <input type="radio" id="rangeReleases" name="releaseType" value="range"
                 class="h-4 w-4 text-blue-600 focus:ring-blue-500">
-              <label for="rangeReleases" class="ml-2 block text-sm text-gray-700">Release Range</label>
+              <label for="rangeReleases" class="ml-2 block text-sm text-gray-60">Release Range</label>
             </div>
             
             <div class="pl-6 space-y-3 release-range-options hidden">
               <div>
-                <label for="startTag" class="block text-sm font-medium text-gray-700 mb-1">Start Tag (Older)</label>
+                <label for="startTag" class="block text-sm font-medium text-gray-60 mb-1">Start Tag (Older)</label>
                 <input type="text" id="startTag" name="startTag" placeholder="e.g., v1.0.0" 
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               </div>
               
               <div>
-                <label for="endTag" class="block text-sm font-medium text-gray-700 mb-1">End Tag (Newer)</label>
+                <label for="endTag" class="block text-sm font-medium text-gray-60 mb-1">End Tag (Newer)</label>
                 <input type="text" id="endTag" name="endTag" placeholder="e.g., v2.0.0" 
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               </div>
@@ -123,12 +126,12 @@
             <div class="flex items-center mb-3">
               <input type="radio" id="specificReleases" name="releaseType" value="specific"
                 class="h-4 w-4 text-blue-600 focus:ring-blue-500">
-              <label for="specificReleases" class="ml-2 block text-sm text-gray-700">Specific Versions</label>
+              <label for="specificReleases" class="ml-2 block text-sm text-gray-60">Specific Versions</label>
             </div>
             
             <div class="pl-6 specific-releases-options hidden">
               <div>
-                <label for="versions" class="block text-sm font-medium text-gray-700 mb-1">Version Tags (Comma Separated)</label>
+                <label for="versions" class="block text-sm font-medium text-gray-60 mb-1">Version Tags (Comma Separated)</label>
                 <input type="text" id="versions" name="versions" placeholder="e.g., v1.0.0, v1.1.0, v2.0.0" 
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               </div>
@@ -136,18 +139,18 @@
           </div>
           
           <div class="border-t border-gray-200 pt-4">
-            <p class="block text-sm font-medium text-gray-700 mb-3">Options</p>
+            <p class="block text-sm font-medium text-gray-60 mb-3">Options</p>
             
             <div class="flex items-center mb-3">
               <input type="checkbox" id="includePrereleases" name="includePrereleases"
                 class="h-4 w-4 text-blue-600 focus:ring-blue-500">
-              <label for="includePrereleases" class="ml-2 block text-sm text-gray-700">Include Pre-releases</label>
+              <label for="includePrereleases" class="ml-2 block text-sm text-gray-60">Include Pre-releases</label>
             </div>
             
             <div class="flex items-center">
               <input type="checkbox" id="mergeHeadings" name="mergeHeadings"
                 class="h-4 w-4 text-blue-600 focus:ring-blue-500">
-              <label for="mergeHeadings" class="ml-2 block text-sm text-gray-700">Merge by Heading</label>
+              <label for="mergeHeadings" class="ml-2 block text-sm text-gray-60">Merge by Heading</label>
             </div>
           </div>
           
@@ -168,7 +171,7 @@
         
         <div id="errorMessage" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded"></div>
         
-        <div id="releaseStats" class="hidden bg-white rounded-lg p-4 mb-4 shadow">
+        <div id="releaseStats" class="hidden bg-gray-900 rounded-lg p-4 mb-4 shadow">
           <div class="text-lg font-semibold mb-2">Release Notes Summary</div>
           <div id="statsContent" class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <!-- Stats will be inserted here -->
@@ -176,7 +179,7 @@
         </div>
         
         <div id="results" class="hidden">
-          <div class="bg-white rounded-lg p-4 shadow mb-4 flex justify-between items-center">
+          <div class="bg-gray-900 rounded-lg p-4 shadow mb-4 flex justify-between items-center">
             <div class="text-lg font-semibold">Aggregated Release Notes</div>
             <div>
               <button id="copyMarkdown" class="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm mr-2">
@@ -188,14 +191,14 @@
             </div>
           </div>
           
-          <div class="bg-white rounded-lg p-6 shadow">
+          <div class="bg-gray-900 rounded-lg p-6 shadow">
             <div id="markdownContent" class="markdown-body"></div>
           </div>
         </div>
       </div>
     </main>
     
-    <footer class="mt-12 text-center text-gray-500 text-sm">
+    <footer class="mt-12 text-center text-gray-8000 text-sm">
       <p>GitHub Release Notes Aggregator - Web Version</p>
       <p class="mt-1">Built with JavaScript, Tailwind CSS, and Marked.js</p>
     </footer>
@@ -465,19 +468,19 @@
         
         statsContent.innerHTML = `
           <div class="stat-box p-3 border rounded-lg border-gray-200">
-            <div class="text-sm text-gray-500">Total Releases</div>
+            <div class="text-sm text-gray-8000">Total Releases</div>
             <div class="text-2xl font-bold">${totalReleases}</div>
           </div>
           <div class="stat-box p-3 border rounded-lg border-gray-200">
-            <div class="text-sm text-gray-500">Pre-releases</div>
+            <div class="text-sm text-gray-8000">Pre-releases</div>
             <div class="text-2xl font-bold">${prereleases}</div>
           </div>
           <div class="stat-box p-3 border rounded-lg border-gray-200">
-            <div class="text-sm text-gray-500">First Release</div>
+            <div class="text-sm text-gray-8000">First Release</div>
             <div class="text-2xl font-bold">${formatDate(firstReleaseDate)}</div>
           </div>
           <div class="stat-box p-3 border rounded-lg border-gray-200">
-            <div class="text-sm text-gray-500">Latest Release</div>
+            <div class="text-sm text-gray-8000">Latest Release</div>
             <div class="text-2xl font-bold">${formatDate(latestReleaseDate)}</div>
           </div>
         `;
