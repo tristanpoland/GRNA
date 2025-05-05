@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Release Notes Aggregator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.3/purify.min.js"></script>
+  <style>
+    .markdown-body h1 {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .markdown-body h2 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .markdown-body h3 {
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .markdown-body p, .markdown-body ul, .markdown-body ol {
+      margin-bottom: 1rem;
+    }
+    .markdown-body ul, .markdown-body ol {
+      padding-left: 1.5rem;
+    }
+    .markdown-body ul {
+      list-style-type: disc;
+    }
+    .markdown-body ol {
+      list-style-type: decimal;
+    }
+    .markdown-body a {
+      color: #3b82f6;
+      text-decoration: underline;
+    }
+    .markdown-body code {
+      background-color: #f1f5f9;
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.25rem;
+      font-family: monospace;
+    }
+    .markdown-body pre {
+      background-color: #f1f5f9;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+    .markdown-body pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-center mb-2">GitHub Release Notes Aggregator</h1>
+      <p class="text-center text-gray-600 mb-4">Aggregate release notes between versions or across multiple tags</p>
+      <div class="border-b border-gray-200 mb-4"></div>
+    </header>
+
+    <main class="grid md:grid-cols-12 gap-8">
+      <div class="md:col-span-4 rounded-lg bg-white p-6 shadow">
+        <form id="releaseForm" class="space-y-4">
+          <div>
+            <label for="owner" class="block text-sm font-medium text-gray-700 mb-1">Repository Owner</label>
+            <input type="text" id="owner" name="owner" placeholder="e.g., microsoft" required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label for="repo" class="block text-sm font-medium text-gray-700 mb-1">Repository Name</label>
+            <input type="text" id="repo" name="repo" placeholder="e.g., vscode" required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label for="token" class="block text-sm font-medium text-gray-700 mb-1">GitHub Token (Optional)</label>
+            <input type="password" id="token" name="token" placeholder="For higher API rate limits" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <p class="text-xs text-gray-500 mt-1">Your token is never stored or sent anywhere except GitHub API</p>
+          </div>
+          
+          <div class="border-t border-gray-200 pt-4">
+            <p class="block text-sm font-medium text-gray-700 mb-3">Select Releases</p>
+            
+            <div class="flex items-center mb-3">
+              <input type="radio" id="allReleases" name="releaseType" value="all" checked
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+              <label for="allReleases" class="ml-2 block text-sm text-gray-700">All Releases</label>
+            </div>
+            
+            <div class="flex items-center mb-3">
+              <input type="radio" id="rangeReleases" name="releaseType" value="range"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+              <label for="rangeReleases" class="ml-2 block text-sm text-gray-700">Release Range</label>
+            </div>
+            
+            <div class="pl-6 space-y-3 release-range-options hidden">
+              <div>
+                <label for="startTag" class="block text-sm font-medium text-gray-700 mb-1">Start Tag (Older)</label>
+                <input type="text" id="startTag" name="startTag" placeholder="e.g., v1.0.0" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              
+              <div>
+                <label for="endTag" class="block text-sm font-medium text-gray-700 mb-1">End Tag (Newer)</label>
+                <input type="text" id="endTag" name="endTag" placeholder="e.g., v2.0.0" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+            
+            <div class="flex items-center mb-3">
+              <input type="radio" id="specificReleases" name="releaseType" value="specific"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+              <label for="specificReleases" class="ml-2 block text-sm text-gray-700">Specific Versions</label>
+            </div>
+            
+            <div class="pl-6 specific-releases-options hidden">
+              <div>
+                <label for="versions" class="block text-sm font-medium text-gray-700 mb-1">Version Tags (Comma Separated)</label>
+                <input type="text" id="versions" name="versions" placeholder="e.g., v1.0.0, v1.1.0, v2.0.0" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+          </div>
+          
+          <div class="border-t border-gray-200 pt-4">
+            <p class="block text-sm font-medium text-gray-700 mb-3">Options</p>
+            
+            <div class="flex items-center mb-3">
+              <input type="checkbox" id="includePrereleases" name="includePrereleases"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+              <label for="includePrereleases" class="ml-2 block text-sm text-gray-700">Include Pre-releases</label>
+            </div>
+            
+            <div class="flex items-center">
+              <input type="checkbox" id="mergeHeadings" name="mergeHeadings"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+              <label for="mergeHeadings" class="ml-2 block text-sm text-gray-700">Merge by Heading</label>
+            </div>
+          </div>
+          
+          <div>
+            <button type="submit" id="submitBtn"
+              class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition">
+              Generate Release Notes
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <div class="md:col-span-8 rounded-lg">
+        <div id="loadingIndicator" class="hidden flex items-center justify-center p-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <span class="ml-3 text-lg">Fetching releases...</span>
+        </div>
+        
+        <div id="errorMessage" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded"></div>
+        
+        <div id="releaseStats" class="hidden bg-white rounded-lg p-4 mb-4 shadow">
+          <div class="text-lg font-semibold mb-2">Release Notes Summary</div>
+          <div id="statsContent" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Stats will be inserted here -->
+          </div>
+        </div>
+        
+        <div id="results" class="hidden">
+          <div class="bg-white rounded-lg p-4 shadow mb-4 flex justify-between items-center">
+            <div class="text-lg font-semibold">Aggregated Release Notes</div>
+            <div>
+              <button id="copyMarkdown" class="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm mr-2">
+                Copy Markdown
+              </button>
+              <button id="downloadMarkdown" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                Download
+              </button>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-lg p-6 shadow">
+            <div id="markdownContent" class="markdown-body"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    
+    <footer class="mt-12 text-center text-gray-500 text-sm">
+      <p>GitHub Release Notes Aggregator - Web Version</p>
+      <p class="mt-1">Built with JavaScript, Tailwind CSS, and Marked.js</p>
+    </footer>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // UI element references
+      const releaseForm = document.getElementById('releaseForm');
+      const releaseTypeRadios = document.getElementsByName('releaseType');
+      const rangeOptions = document.querySelector('.release-range-options');
+      const specificOptions = document.querySelector('.specific-releases-options');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const errorMessage = document.getElementById('errorMessage');
+      const results = document.getElementById('results');
+      const markdownContent = document.getElementById('markdownContent');
+      const releaseStats = document.getElementById('releaseStats');
+      const statsContent = document.getElementById('statsContent');
+      const copyMarkdownBtn = document.getElementById('copyMarkdown');
+      const downloadMarkdownBtn = document.getElementById('downloadMarkdown');
+      
+      // Event listeners for the radio buttons
+      for (const radio of releaseTypeRadios) {
+        radio.addEventListener('change', function() {
+          rangeOptions.classList.add('hidden');
+          specificOptions.classList.add('hidden');
+          
+          if (this.value === 'range') {
+            rangeOptions.classList.remove('hidden');
+          } else if (this.value === 'specific') {
+            specificOptions.classList.remove('hidden');
+          }
+        });
+      }
+      
+      // Form submission handler
+      releaseForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Reset UI
+        loadingIndicator.classList.remove('hidden');
+        errorMessage.classList.add('hidden');
+        results.classList.add('hidden');
+        releaseStats.classList.add('hidden');
+        errorMessage.textContent = '';
+        
+        // Get form values
+        const owner = document.getElementById('owner').value.trim();
+        const repo = document.getElementById('repo').value.trim();
+        const token = document.getElementById('token').value.trim();
+        const releaseType = document.querySelector('input[name="releaseType"]:checked').value;
+        const includePrereleases = document.getElementById('includePrereleases').checked;
+        const mergeHeadings = document.getElementById('mergeHeadings').checked;
+        
+        // Specific options based on selection type
+        let startTag = null, endTag = null, versions = null;
+        
+        if (releaseType === 'range') {
+          startTag = document.getElementById('startTag').value.trim();
+          endTag = document.getElementById('endTag').value.trim();
+        } else if (releaseType === 'specific') {
+          versions = document.getElementById('versions').value.trim();
+        }
+        
+        try {
+          // Fetch all releases first
+          const releases = await fetchAllReleases(owner, repo, token, includePrereleases);
+          
+          if (releases.length === 0) {
+            throw new Error('No releases found for this repository');
+          }
+          
+          // Display stats
+          displayReleaseStats(releases);
+          
+          // Filter releases based on selection
+          const filteredReleases = filterReleases(releases, releaseType, startTag, endTag, versions);
+          
+          // Process and generate markdown
+          const markdown = mergeHeadings 
+            ? generateMarkdownMergedHeadings(mergeReleaseNotesByHeading(filteredReleases))
+            : generateMarkdown(mergeReleaseNotes(filteredReleases));
+          
+          // Display the result
+          markdownContent.innerHTML = DOMPurify.sanitize(marked.parse(markdown));
+          results.classList.remove('hidden');
+          loadingIndicator.classList.add('hidden');
+          
+          // Store the generated markdown for copying/downloading
+          markdownContent.dataset.markdown = markdown;
+          
+        } catch (error) {
+          console.error('Error:', error);
+          loadingIndicator.classList.add('hidden');
+          errorMessage.textContent = error.message || 'An error occurred while fetching release notes';
+          errorMessage.classList.remove('hidden');
+        }
+      });
+      
+      // Copy Markdown button
+      copyMarkdownBtn.addEventListener('click', function() {
+        const markdown = markdownContent.dataset.markdown;
+        if (markdown) {
+          navigator.clipboard.writeText(markdown).then(() => {
+            // Show temporary feedback
+            const originalText = copyMarkdownBtn.textContent;
+            copyMarkdownBtn.textContent = 'Copied!';
+            copyMarkdownBtn.classList.remove('bg-gray-200', 'text-gray-800');
+            copyMarkdownBtn.classList.add('bg-green-500', 'text-white');
+            
+            setTimeout(() => {
+              copyMarkdownBtn.textContent = originalText;
+              copyMarkdownBtn.classList.remove('bg-green-500', 'text-white');
+              copyMarkdownBtn.classList.add('bg-gray-200', 'text-gray-800');
+            }, 2000);
+          });
+        }
+      });
+      
+      // Download Markdown button
+      downloadMarkdownBtn.addEventListener('click', function() {
+        const markdown = markdownContent.dataset.markdown;
+        if (markdown) {
+          const owner = document.getElementById('owner').value.trim();
+          const repo = document.getElementById('repo').value.trim();
+          const filename = `${owner}-${repo}-release-notes.md`;
+          
+          const blob = new Blob([markdown], { type: 'text/markdown' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      });
+      
+      // --- Main Functions ---
+      
+      // Fetch all releases from GitHub API
+      async function fetchAllReleases(owner, repo, token, includePrereleases) {
+        const headers = new Headers();
+        headers.append('Accept', 'application/vnd.github.v3+json');
+        
+        if (token) {
+          headers.append('Authorization', `token ${token}`);
+        }
+        
+        headers.append('User-Agent', 'GitHub-Release-Notes-Aggregator-Web');
+        
+        const response = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`,
+          { headers }
+        );
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error(`Repository ${owner}/${repo} not found or no releases available`);
+          } else if (response.status === 403 && response.headers.get('X-RateLimit-Remaining') === '0') {
+            throw new Error('GitHub API rate limit exceeded. Try using a personal access token.');
+          } else {
+            const errorText = await response.text();
+            throw new Error(`GitHub API Error (${response.status}): ${errorText}`);
+          }
+        }
+        
+        const releases = await response.json();
+        
+        // Filter out prereleases if not included
+        let filteredReleases = includePrereleases 
+          ? releases 
+          : releases.filter(release => !release.prerelease);
+        
+        // Sort by published date (newest first)
+        filteredReleases.sort((a, b) => {
+          const dateA = new Date(a.published_at);
+          const dateB = new Date(b.published_at);
+          return dateB - dateA;
+        });
+        
+        return filteredReleases;
+      }
+      
+      // Filter releases based on user selection
+      function filterReleases(releases, releaseType, startTag, endTag, versions) {
+        if (releaseType === 'all') {
+          return releases;
+        }
+        
+        if (releaseType === 'range') {
+          if ((!startTag && !endTag) || (startTag === '' && endTag === '')) {
+            return releases;
+          }
+          
+          let startIndex = -1;
+          let endIndex = -1;
+          
+          if (startTag) {
+            startIndex = releases.findIndex(release => release.tag_name === startTag);
+            if (startIndex === -1) {
+              throw new Error(`Start tag '${startTag}' not found`);
+            }
+          }
+          
+          if (endTag) {
+            endIndex = releases.findIndex(release => release.tag_name === endTag);
+            if (endIndex === -1) {
+              throw new Error(`End tag '${endTag}' not found`);
+            }
+          }
+          
+          // If only startTag provided, get from that tag to the latest
+          if (startTag && !endTag) {
+            return releases.slice(startIndex);
+          }
+          
+          // If only endTag provided, get from the earliest to that tag
+          if (!startTag && endTag) {
+            return releases.slice(0, endIndex + 1);
+          }
+          
+          // Get releases between the two tags (inclusive)
+          const lowerIndex = Math.min(startIndex, endIndex);
+          const higherIndex = Math.max(startIndex, endIndex);
+          return releases.slice(lowerIndex, higherIndex + 1);
+        }
+        
+        if (releaseType === 'specific' && versions) {
+          const versionTags = versions.split(',').map(tag => tag.trim());
+          const filteredReleases = [];
+          const missingTags = [];
+          
+          for (const tag of versionTags) {
+            const release = releases.find(r => r.tag_name === tag);
+            if (release) {
+              filteredReleases.push(release);
+            } else {
+              missingTags.push(tag);
+            }
+          }
+          
+          if (missingTags.length > 0) {
+            throw new Error(`Could not find the following tags: ${missingTags.join(', ')}`);
+          }
+          
+          // Sort by published date (newest first)
+          filteredReleases.sort((a, b) => {
+            const dateA = new Date(a.published_at);
+            const dateB = new Date(b.published_at);
+            return dateB - dateA;
+          });
+          
+          return filteredReleases;
+        }
+        
+        return releases;
+      }
+      
+      // Display release statistics
+      function displayReleaseStats(releases) {
+        const totalReleases = releases.length;
+        const prereleases = releases.filter(r => r.prerelease).length;
+        const firstReleaseDate = new Date(releases[releases.length - 1].published_at);
+        const latestReleaseDate = new Date(releases[0].published_at);
+        
+        statsContent.innerHTML = `
+          <div class="stat-box p-3 border rounded-lg border-gray-200">
+            <div class="text-sm text-gray-500">Total Releases</div>
+            <div class="text-2xl font-bold">${totalReleases}</div>
+          </div>
+          <div class="stat-box p-3 border rounded-lg border-gray-200">
+            <div class="text-sm text-gray-500">Pre-releases</div>
+            <div class="text-2xl font-bold">${prereleases}</div>
+          </div>
+          <div class="stat-box p-3 border rounded-lg border-gray-200">
+            <div class="text-sm text-gray-500">First Release</div>
+            <div class="text-2xl font-bold">${formatDate(firstReleaseDate)}</div>
+          </div>
+          <div class="stat-box p-3 border rounded-lg border-gray-200">
+            <div class="text-sm text-gray-500">Latest Release</div>
+            <div class="text-2xl font-bold">${formatDate(latestReleaseDate)}</div>
+          </div>
+        `;
+        
+        releaseStats.classList.remove('hidden');
+      }
+      
+      // Format a date as YYYY-MM-DD
+      function formatDate(date) {
+        return date.toISOString().split('T')[0];
+      }
+      
+      // --- Release Notes Processing Functions ---
+      
+      // Parse release notes into sections
+      // Parse release notes into sections - EXACT 1:1 MATCH to Rust implementation
+      function parseReleaseNotes(body) {
+        if (!body) return {};
+        
+        const sections = {};
+        let currentSection = "Uncategorized";
+        
+        // Initialize with uncategorized section
+        sections[currentSection] = [];
+        
+        // Define a regex for Markdown headings - exact match to Rust
+        const headingRegex = /^(#{1,6})\s+(.+)$/;
+        
+        // Split by lines and process each one
+        const lines = body.split('\n');
+        
+        for (const line of lines) {
+          const headingMatch = line.match(headingRegex);
+          
+          if (headingMatch) {
+            // This is a heading - create a new section or switch to existing one
+            currentSection = headingMatch[2].trim();
+            // Important: Only initialize if it doesn't exist yet
+            if (!sections[currentSection]) {
+              sections[currentSection] = [];
+            }
+          } else if (line.trim() !== '') {
+            // Add non-empty lines to the current section
+            sections[currentSection].push(line.toString());
+          }
+        }
+        
+        // Remove sections with no content
+        for (const [section, lines] of Object.entries(sections)) {
+          if (lines.length === 0) {
+            delete sections[section];
+          }
+        }
+        
+        return sections;
+      }
+      
+      // Merge release notes - exact match to Rust implementation
+      function mergeReleaseNotes(releases) {
+        const mergedSections = {};
+        const knownSections = new Set();
+        
+        // First pass - collect all possible sections
+        for (const release of releases) {
+          if (release.body) {
+            const sections = parseReleaseNotes(release.body);
+            for (const sectionName of Object.keys(sections)) {
+              knownSections.add(sectionName);
+            }
+          }
+        }
+        
+        // Initialize merged sections
+        for (const section of knownSections) {
+          mergedSections[section] = [];
+        }
+        
+        // Second pass - populate sections with items
+        for (const release of releases) {
+          if (release.body) {
+            const version = release.tag_name;
+            const date = new Date(release.published_at);
+            
+            const sections = parseReleaseNotes(release.body);
+            
+            for (const [sectionName, items] of Object.entries(sections)) {
+              for (const item of items) {
+                const noteItem = new ReleaseNoteItem(
+                  item,
+                  version,
+                  date
+                );
+                
+                mergedSections[sectionName].push(noteItem);
+              }
+            }
+          }
+        }
+        
+        return mergedSections;
+      }
+      
+      // Merge by heading - exact match to Rust function
+      function mergeReleaseNotesByHeading(releases) {
+        const mergedSections = {};
+        const knownSections = new Set();
+        
+        // First pass - collect all possible sections
+        for (const release of releases) {
+          if (release.body) {
+            const sections = parseReleaseNotes(release.body);
+            for (const sectionName of Object.keys(sections)) {
+              knownSections.add(sectionName);
+            }
+          }
+        }
+        
+        // Initialize merged sections
+        for (const section of knownSections) {
+          mergedSections[section] = [];
+        }
+        
+        // Second pass - collect all content items by section
+        const contentMap = {};
+        
+        for (const release of releases) {
+          if (release.body) {
+            const version = release.tag_name;
+            const sections = parseReleaseNotes(release.body);
+            
+            for (const [sectionName, items] of Object.entries(sections)) {
+              if (!contentMap[sectionName]) {
+                contentMap[sectionName] = {};
+              }
+              
+              const sectionContent = contentMap[sectionName];
+              
+              for (const item of items) {
+                // Normalize the content by trimming whitespace
+                const normalizedContent = item.trim();
+                
+                if (!sectionContent[normalizedContent]) {
+                  sectionContent[normalizedContent] = [];
+                }
+                
+                sectionContent[normalizedContent].push(version);
+              }
+            }
+          }
+        }
+        
+        // Third pass - create merged items
+        for (const [sectionName, contentItems] of Object.entries(contentMap)) {
+          const mergedItems = [];
+          
+          for (const [content, versions] of Object.entries(contentItems)) {
+            const mergedItem = new MergedHeadingItem(
+              content,
+              versions
+            );
+            
+            mergedItems.push(mergedItem);
+          }
+          
+          // Sort items by how many versions they appear in (most common first)
+          mergedItems.sort((a, b) => {
+            // First by number of sources (descending)
+            const sourceCmp = b.sources.length - a.sources.length;
+            
+            // Then alphabetically by content if tied
+            if (sourceCmp === 0) {
+              return a.content.localeCompare(b.content);
+            } else {
+              return sourceCmp;
+            }
+          });
+          
+          mergedSections[sectionName] = mergedItems;
+        }
+        
+        return mergedSections;
+      }
+      
+      // Class for release note items
+      class ReleaseNoteItem {
+        constructor(content, version, date) {
+          this.content = content;
+          this.version = version;
+          this.date = date;
+        }
+      }
+      
+      // Merge release notes
+      function mergeReleaseNotes(releases) {
+        const mergedSections = {};
+        const knownSections = new Set();
+        
+        // First pass - collect all possible sections
+        for (const release of releases) {
+          if (release.body) {
+            const sections = parseReleaseNotes(release.body);
+            for (const sectionName of Object.keys(sections)) {
+              knownSections.add(sectionName);
+            }
+          }
+        }
+        
+        // Initialize merged sections
+        for (const section of knownSections) {
+          mergedSections[section] = [];
+        }
+        
+        // Second pass - populate sections with items
+        for (const release of releases) {
+          if (release.body) {
+            const version = release.tag_name;
+            const date = new Date(release.published_at);
+            
+            const sections = parseReleaseNotes(release.body);
+            
+            for (const [sectionName, items] of Object.entries(sections)) {
+              for (const item of items) {
+                const noteItem = new ReleaseNoteItem(
+                  item,
+                  version,
+                  date
+                );
+                
+                mergedSections[sectionName].push(noteItem);
+              }
+            }
+          }
+        }
+        
+        return mergedSections;
+      }
+      
+      // Class for merged heading items
+      class MergedHeadingItem {
+        constructor(content, sources) {
+          this.content = content;
+          this.sources = sources || [];
+        }
+      }
+      
+      // Merge release notes by heading
+      function mergeReleaseNotesByHeading(releases) {
+        const mergedSections = {};
+        const knownSections = new Set();
+        
+        // First pass - collect all possible sections
+        for (const release of releases) {
+          if (release.body) {
+            const sections = parseReleaseNotes(release.body);
+            for (const sectionName of Object.keys(sections)) {
+              knownSections.add(sectionName);
+            }
+          }
+        }
+        
+        // Initialize merged sections
+        for (const section of knownSections) {
+          mergedSections[section] = [];
+        }
+        
+        // Second pass - collect all content items by section
+        const contentMap = {};
+        
+        for (const release of releases) {
+          if (release.body) {
+            const version = release.tag_name;
+            const sections = parseReleaseNotes(release.body);
+            
+            for (const [sectionName, items] of Object.entries(sections)) {
+              if (!contentMap[sectionName]) {
+                contentMap[sectionName] = {};
+              }
+              
+              const sectionContent = contentMap[sectionName];
+              
+              for (const item of items) {
+                // Skip empty content
+                if (!item.trim()) continue;
+                
+                // Skip lines that look like Markdown headers
+                if (/^#{1,6}\s+.+$/.test(item.trim())) continue;
+                
+                // Normalize the content by trimming whitespace
+                const normalizedContent = item.trim();
+                
+                if (!sectionContent[normalizedContent]) {
+                  sectionContent[normalizedContent] = [];
+                }
+                
+                // Only add the version if it's not already in the sources list
+                if (!sectionContent[normalizedContent].includes(version)) {
+                  sectionContent[normalizedContent].push(version);
+                }
+              }
+            }
+          }
+        }
+        
+        // Third pass - create merged items
+        for (const [sectionName, contentItems] of Object.entries(contentMap)) {
+          const mergedItems = [];
+          
+          for (const [content, versions] of Object.entries(contentItems)) {
+            // Only add non-empty content
+            if (content.trim()) {
+              const mergedItem = new MergedHeadingItem(
+                content,
+                versions
+              );
+              
+              mergedItems.push(mergedItem);
+            }
+          }
+          
+          // Sort items by how many versions they appear in (most common first)
+          mergedItems.sort((a, b) => {
+            // First by number of sources (descending)
+            const sourceCmp = b.sources.length - a.sources.length;
+            
+            // Then alphabetically by content if tied
+            if (sourceCmp === 0) {
+              return a.content.localeCompare(b.content);
+            } else {
+              return sourceCmp;
+            }
+          });
+          
+          mergedSections[sectionName] = mergedItems;
+        }
+        
+        return mergedSections;
+      }
+      
+      // Generate markdown from merged sections
+      function generateMarkdown(mergedSections) {
+        let markdown = "# Aggregated Release Notes\n\n";
+        
+        // Sort sections alphabetically, but put "Uncategorized" at the end
+        const sectionNames = Object.keys(mergedSections).sort((a, b) => {
+          if (a === "Uncategorized") {
+            return 1;
+          } else if (b === "Uncategorized") {
+            return -1;
+          } else {
+            return a.localeCompare(b);
+          }
+        });
+        
+        for (const sectionName of sectionNames) {
+          markdown += `## ${sectionName}\n\n`;
+          
+          const items = mergedSections[sectionName];
+          
+          // Group items by version
+          const versions = {};
+          for (const item of items) {
+            const key = `${item.version}|${item.date.toISOString()}`;
+            if (!versions[key]) {
+              versions[key] = [];
+            }
+            versions[key].push(item);
+          }
+          
+          // Sort versions by date (newest first)
+          const versionEntries = Object.entries(versions);
+          versionEntries.sort((a, b) => {
+            const dateA = new Date(a[0].split('|')[1]);
+            const dateB = new Date(b[0].split('|')[1]);
+            return dateB - dateA;
+          });
+          
+          for (const [versionKey, versionItems] of versionEntries) {
+            const [version, dateStr] = versionKey.split('|');
+            const date = new Date(dateStr);
+            
+            markdown += `### ${version} (${formatDate(date)})\n\n`;
+            
+            for (const item of versionItems) {
+              markdown += `${item.content}\n`;
+            }
+            
+            markdown += "\n";
+          }
+        }
+        
+        return markdown;
+      }
+      
+      // Generate markdown with merged headings
+      function generateMarkdownMergedHeadings(mergedSections) {
+        let markdown = "# Aggregated Release Notes (Merged by Heading)\n\n";
+        
+        // Sort sections alphabetically, but put "Uncategorized" at the end
+        const sectionNames = Object.keys(mergedSections).sort((a, b) => {
+          if (a === "Uncategorized") {
+            return 1;
+          } else if (b === "Uncategorized") {
+            return -1;
+          } else {
+            return a.localeCompare(b);
+          }
+        });
+        
+        for (const sectionName of sectionNames) {
+          markdown += `## ${sectionName}\n\n`;
+          
+          const items = mergedSections[sectionName];
+          
+          for (const item of items) {
+            // Add the content
+            markdown += `${item.content}\n`;
+            
+            // Clean up the content - remove leading markdown code block indicators
+            const cleanContent = item.content.replace(/^```.*$|^```$/gm, '').trim();
+            
+            // Add the cleaned content
+            markdown += `${cleanContent}\n`;
+            
+            // Add source versions if there are multiple
+            if (item.sources.length > 1) {
+              const sortedSources = [...item.sources].sort();
+              const sourcesList = sortedSources.join(", ");
+              markdown += `*(Present in versions: ${sourcesList})*\n\n`;
+            } else if (item.sources.length === 1) {
+              markdown += `*(From version: ${item.sources[0]})*\n\n`;
+            } else {
+              markdown += "\n";
+            }
+          }
+          
+          markdown += "\n";
+        }
+        
+        return markdown;
+      }
+      
+      // Helper functions for semantic versioning
+      
+      // Extract version number from tag name (e.g., "v1.2.3" -> "1.2.3")
+      function extractVersion(tagName) {
+        const match = /^[vV]?(.+)$/.exec(tagName);
+        if (match) {
+          return match[1];
+        }
+        return tagName;
+      }
+      
+      // Check if a tag follows semantic versioning
+      function isSemver(tag) {
+        const versionStr = tag.startsWith('v') || tag.startsWith('V') 
+          ? tag.substring(1) 
+          : tag;
+        
+        const semverRegex = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+        return semverRegex.test(versionStr);
+      }
+      
+      // Compare two semantic version tags
+      function compareSemver(tag1, tag2) {
+        const clean1 = extractVersion(tag1);
+        const clean2 = extractVersion(tag2);
+        
+        if (!isSemver(clean1) || !isSemver(clean2)) {
+          // Fall back to string comparison if not semver
+          return clean1.localeCompare(clean2);
+        }
+        
+        const v1 = clean1.split('.');
+        const v2 = clean2.split('.');
+        
+        for (let i = 0; i < 3; i++) {
+          if (i >= v1.length || i >= v2.length) {
+            return v1.length - v2.length;
+          }
+          
+          const n1 = parseInt(v1[i], 10) || 0;
+          const n2 = parseInt(v2[i], 10) || 0;
+          
+          if (n1 !== n2) {
+            return n1 - n2;
+          }
+        }
+        
+        return 0;
+      }
+    });
+  </script>
+</body>
+</html>
